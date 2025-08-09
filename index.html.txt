@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>命理卡片</title>
+<style>
+    body {
+        font-family: "Microsoft YaHei", sans-serif;
+        background: radial-gradient(circle at center, #fff7d6, #c8e6ff, #d8c8ff, #ffcccc);
+        color: #333;
+        text-align: center;
+        padding-top: 100px;
+    }
+    .card {
+        background: rgba(255, 255, 255, 0.85);
+        border-radius: 20px;
+        padding: 30px;
+        width: 80%;
+        margin: auto;
+        box-shadow: 0 0 30px rgba(0,0,0,0.2);
+    }
+    h1 {
+        color: #663399;
+    }
+</style>
+</head>
+<body>
+    <div class="card">
+        <h1>你的今日命理</h1>
+        <p id="fortuneText"></p>
+    </div>
+    <script>
+        const fortunes = [
+            "你今天会遇到一件让你觉得‘嗯，还行’的事。",
+            "在某个意想不到的角落，你会发现一粒米。",
+            "今天的你，像风中的塑料袋一样，自由且迷茫。",
+            "好运在路上，但堵车了。",
+            "你的一句话，可能会让别人觉得你很有哲理，也可能只是没听懂。",
+            "今天的你，注定要在某个瞬间觉得自己很特别，但别人没发现。",
+            "小心，不要被自己的想象吓到。"
+        ];
+        document.getElementById("fortuneText").innerText =
+            fortunes[Math.floor(Math.random() * fortunes.length)];
+    </script>
+</body>
+</html>
