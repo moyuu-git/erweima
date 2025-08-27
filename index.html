@@ -1,46 +1,190 @@
-<!DOCTYPE html>
-<html lang="zh">
+<!doctype html>
+<html>
 <head>
-<meta charset="UTF-8">
-<title>命理卡片</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>算法命理 · 你的专属提示</title>
 <style>
-    body {
-        font-family: "Microsoft YaHei", sans-serif;
-        background: radial-gradient(circle at center, #fff7d6, #c8e6ff, #d8c8ff, #ffcccc);
-        color: #333;
-        text-align: center;
-        padding-top: 100px;
-    }
-    .card {
-        background: rgba(255, 255, 255, 0.85);
-        border-radius: 20px;
-        padding: 30px;
-        width: 80%;
-        margin: auto;
-        box-shadow: 0 0 30px rgba(0,0,0,0.2);
-    }
-    h1 {
-        color: #663399;
-    }
+  html,body { margin:0; height:100%; font-family: "SansSerif", Arial, Helvetica; }
+  canvas { display:block; }
+  #info { position: absolute; left: 18px; top: 18px; background: rgba(255,255,255,0.9); padding:10px 12px; border-radius:8px; font-size:14px; line-height:1.3; }
+  #reading { position: absolute; right: 18px; bottom: 40px; background: rgba(255,255,255,0.95); padding:14px; border-radius:8px; max-width: 340px; font-size:15px; white-space:pre-wrap; }
+  #footerHint { position: absolute; left: 50%; transform: translateX(-50%); bottom: 18px; background: rgba(0,0,0,0.6); color: #fff; padding:6px 10px; border-radius:6px; font-size:13px; }
 </style>
 </head>
 <body>
-    <div class="card">
-        <h1>你的今日命理</h1>
-        <p id="fortuneText"></p>
-    </div>
-    <script>
-        const fortunes = [
-            "你今天会遇到一件让你觉得‘嗯，还行’的事。",
-            "在某个意想不到的角落，你会发现一粒米。",
-            "今天的你，像风中的塑料袋一样，自由且迷茫。",
-            "好运在路上，但堵车了。",
-            "你的一句话，可能会让别人觉得你很有哲理，也可能只是没听懂。",
-            "今天的你，注定要在某个瞬间觉得自己很特别，但别人没发现。",
-            "小心，不要被自己的想象吓到。"
-        ];
-        document.getElementById("fortuneText").innerText =
-            fortunes[Math.floor(Math.random() * fortunes.length)];
-    </script>
+<div id="info"></div>
+<div id="reading"></div>
+<div id="footerHint">如需保存，可截屏或使用页面内保存按钮（可扩展）</div>
+
+<!-- p5.js -->
+<script src="https://cdn.jsdelivr.net/npm/p5@1.6.0/lib/p5.min.js"></script>
+
+<script>
+/* 解析 URL 参数 & 提供默认值 */
+function getParams() {
+  const sp = new URLSearchParams(window.location.search);
+  return {
+    temp: parseFloat(sp.get('temp')) || 22.0,
+    hum:  parseFloat(sp.get('hum'))  || 50.0,
+    light:parseFloat(sp.get('light'))|| 500,
+    near:  sp.get('near') === '1'
+  };
+}
+
+/* 全局状态 */
+let params;
+let orbs = [], dusts = [];
+const palette = ['#ED00B7','#0E03DE','#D0EFFA','#FFCE00','#9E0010'];
+let angleOffset = 0;
+
+function setup(){
+  createCanvas(windowWidth, windowHeight);
+  params = getParams();
+
+  // 初始化 orbs + dusts（与 Processing 对应）
+  for(let i=0;i<12;i++) orbs.push(new Orb(i * TWO_PI / 12.0));
+  for(let i=0;i<120;i++) dusts.push(new Dust());
+
+  // 写入顶部信息和侧边命理文案
+  updateInfoAndReading();
+  textFont('SansSerif');
+}
+
+function draw(){
+  background(255);
+
+  push();
+  translate(width/2, height/2);
+
+  const speedFactor = map(params.hum, 0, 100, 0.5, 2.0);
+  const radiusBase  = min(width, height) * 0.33;
+  const lightScale  = map(params.light, 0, 1023, 0.6, 1.8);
+
+  angleOffset += 0.01 * speedFactor;
+
+  // 背景呼吸同心圆（克制）
+  noFill();
+  stroke(0, 40);
+  for (let r = 150; r <= 420; r += 60) {
+    let pulse = 16 * sin(frameCount * 0.02 + r * 0.03);
+    ellipse(0, 0, r + pulse, r + pulse);
+  }
+
+  // 八向能量线
+  stroke(0, 50);
+  let linesRot = frameCount * 0.0015;
+  for (let i = 0; i < 8; i++) {
+    let a = i * PI/4 + linesRot;
+    let inner = 90 + 10 * sin(frameCount*0.03 + i);
+    let outer = radiusBase + 70 + 12 * cos(frameCount*0.027 + i);
+    line(cos(a)*inner, sin(a)*inner, cos(a)*outer, sin(a)*outer);
+  }
+
+  // 尘埃
+  noStroke();
+  for (let d of dusts) { d.update(); d.display(); }
+
+  // orbs
+  for (let i = 0; i < orbs.length; i++) {
+    let o = orbs[i];
+    let radius = radiusBase * (0.86 + 0.14 * sin(frameCount * 0.01 + i * 0.7));
+    if (i === 0) {
+      o.scale = lightScale;
+      radius *= lightScale;
+    } else {
+      o.scale = 1.0;
+    }
+    o.update(angleOffset, radius);
+    o.display(params.near);
+  }
+
+  pop();
+}
+
+/* 窗口变化自适应 */
+function windowResized(){ resizeCanvas(windowWidth, windowHeight); }
+
+/* 组件：Orb */
+class Orb {
+  constructor(angle) {
+    this.angle = angle;
+    this.x = 0; this.y = 0; this.scale = 1;
+    this.col = color(random(palette));
+  }
+  update(offset, radius) {
+    this.x = cos(this.angle + offset) * radius;
+    this.y = sin(this.angle + offset) * radius;
+  }
+  display(isNear) {
+    let baseSize = 60 * this.scale;
+    noStroke();
+    let c = this.col;
+    if (isNear) c = lerpColor(c, color(255,100,50), 0.45);
+    fill(c, 205);
+    ellipse(this.x, this.y, baseSize, baseSize);
+    noFill();
+    stroke(c, 70);
+    let halo = baseSize + 22 * sin(frameCount * 0.05 + this.angle * 3.0);
+    ellipse(this.x, this.y, halo, halo);
+  }
+}
+
+/* 组件：Dust */
+class Dust {
+  constructor() {
+    this.radius = random(100, 480);
+    this.angle  = random(TWO_PI);
+    this.speed  = random(0.001, 0.004);
+    this.sz     = random(1.2, 2.6);
+    this.alpha  = random(20, 60);
+  }
+  update() {
+    this.angle += this.speed;
+    this.radius += 0.25 * sin(frameCount * 0.01 + this.angle * 5.0);
+  }
+  display() {
+    let px = cos(this.angle) * this.radius;
+    let py = sin(this.angle) * this.radius;
+    noStroke();
+    fill(0, this.alpha);
+    ellipse(px, py, this.sz, this.sz);
+  }
+}
+
+/* 页面上显示文本（感应数据 + 简短命理提示）*/
+function updateInfoAndReading(){
+  const info = document.getElementById('info');
+  info.innerText = `温度: ${params.temp.toFixed(1)}°C\n湿度: ${params.hum.toFixed(1)}%\n光照: ${Math.round(params.light)}\n观众接近: ${params.near ? '是' : '否'}`;
+
+  const reading = document.getElementById('reading');
+  reading.innerText = generateReading(params);
+}
+
+/* 一个示例的“命理提示”算法（可替换或扩展）*/
+function generateReading(p) {
+  // 简单五行偏向算法（示例）
+  let scores = { wood:0, fire:0, earth:0, metal:0, water:0 };
+  scores.fire += map(p.light, 0, 1023, 0, 3) + map(p.temp, 0, 40, 0, 2);
+  scores.water += map(p.hum, 0, 100, 0, 3);
+  scores.earth += map(p.temp, 10, 30, 0, 2);
+  if (p.near) scores.metal += 2;
+
+  // 选最大
+  let maxK = 'fire', maxV = -999;
+  for (let k in scores) if (scores[k] > maxV) { maxV = scores[k]; maxK = k; }
+
+  const mapCN = { wood:'木', fire:'火', earth:'土', metal:'金', water:'水' };
+  const suggestion = {
+    wood: '适合伸展与生长类动作，放松肩颈，接纳新变化。',
+    fire: '精力旺盛，适合表达与创作，注意劳逸结合。',
+    earth: '稳定、务实，适合整理与沉淀心情。',
+    metal: '戒律与清理感强，适合整理环境与深呼吸。',
+    water: '适合静心与冥想，减少外部刺激。'
+  };
+
+  return `五行倾向：${mapCN[maxK]}\n结论：当前能量偏向${mapCN[maxK]}。\n建议：${suggestion[maxK]}`;
+}
+</script>
 </body>
 </html>
