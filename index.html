@@ -4,16 +4,29 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>算法命理 · 荒诞提示</title>
-<title>您的近日命理图示</title>
 <style>
 html,body { margin:0; height:100%; font-family: "SansSerif", Arial, Helvetica; background:#fff; }
 canvas { display:block; }
 #reading { position: absolute; right: 18px; top: 18px; background: rgba(255,255,255,0.95); padding:14px; border-radius:8px; max-width: 360px; font-size:15px; white-space:pre-wrap; }
-#saveBtn { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); padding:10px 20px; border:none; background:#333; color:#fff; border-radius:6px; font-size:16px; cursor:pointer; }
 #footerHint { position: absolute; left: 50%; transform: translateX(-50%); bottom: 18px; background: rgba(0,0,0,0.6); color: #fff; padding:6px 10px; border-radius:6px; font-size:13px; }
 #title { position:absolute; top:20px; width:100%; text-align:center; font-size:28px; font-weight:bold; }
 #analysis { position:absolute; top:calc(50% + 250px); width:100%; text-align:center; font-size:16px; line-height:1.4em; }
 #golden { position:absolute; top:calc(50% + 350px); width:100%; text-align:center; font-size:18px; font-weight:bold; color:#c60; }
+/* 修正 saveBtn 按钮位置 */
+#saveBtn {
+  position: fixed; /* 固定在屏幕底部 */
+  bottom: 40px; /* 增加按钮与底部的间距 */
+  left: 50%; /* 居中按钮 */
+  transform: translateX(-50%); /* 确保按钮水平居中 */
+  padding: 10px 20px;
+  border: none;
+  background: #333;
+  color: #fff;
+  border-radius: 6px;
+  font-size: 16px;
+  cursor: pointer;
+  z-index: 10; /* 确保按钮在页面内容上方 */
+}
 </style>
 </head>
 <body>
