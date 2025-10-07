@@ -1,278 +1,177 @@
 <!doctype html>
-<html lang="zh">
+<html>
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>算法命理 · 荒诞提示</title>
-  <style>
-    html,body {
-      margin:0;
-      height:100%;
-      font-family: "SansSerif", Arial, Helvetica;
-      background:#fff;
-    }
-
-    canvas {
-      display:block;
-    }
-
-    #reading {
-      position: absolute;
-      right: 18px;
-      top: 18px;
-      background: rgba(255,255,255,0.95);
-      padding:14px;
-      border-radius:8px;
-      max-width: 360px;
-      font-size:15px;
-      white-space:pre-wrap;
-    }
-
-    #saveBtn {
-      position: fixed; /* 固定在屏幕底部 */
-      bottom: 40px; /* 增加按钮与底部的间距 */
-      left: 50%; /* 居中按钮 */
-      transform: translateX(-50%); /* 确保按钮水平居中 */
-      padding: 10px 20px;
-      border: none;
-      background: #333;
-      color: #fff;
-      border-radius: 6px;
-      font-size: 16px;
-      cursor: pointer;
-      z-index: 10; /* 确保按钮在页面内容上方 */
-    }
-
-    #footerHint {
-      position: absolute;
-      left: 50%;
-      transform: translateX(-50%);
-      bottom: 18px;
-      background: rgba(0,0,0,0.6);
-      color: #fff;
-      padding:6px 10px;
-      border-radius:6px;
-      font-size:13px;
-    }
-
-    #title {
-      position:absolute;
-      top:20px;
-      width:100%;
-      text-align:center;
-      font-size:28px;
-      font-weight:bold;
-    }
-
-    #analysis {
-      position:absolute;
-      top:calc(50% + 250px);
-      width:100%;
-      text-align:center;
-      font-size:16px;
-      line-height:1.4em;
-    }
-
-    #golden {
-      position:absolute;
-      top:calc(50% + 350px);
-      width:100%;
-      text-align:center;
-      font-size:18px;
-      font-weight:bold;
-      color:#c60;
-    }
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>您的近日命理图示</title>
+<style>
+html,body { margin:0; height:100%; font-family: "SansSerif", Arial, Helvetica; background:#fff; }
+canvas { display:block; }
+#title { position:absolute; top:20px; width:100%; text-align:center; font-size:28px; font-weight:bold; }
+#analysis { position:absolute; top:calc(50% + 250px); width:100%; text-align:center; font-size:16px; line-height:1.4em; }
+#golden { position:absolute; top:calc(50% + 350px); width:100%; text-align:center; font-size:18px; font-weight:bold; color:#c60; }
+#saveBtn { position:absolute; bottom:40px; left:50%; transform:translateX(-50%); padding:10px 20px; border:none; background:#333; color:#fff; border-radius:6px; font-size:16px; cursor:pointer; }
+</style>
 </head>
 <body>
-  <button id="saveBtn">保存命理图示</button>
-  <div id="reading"></div>
-  <div id="footerHint">点击保存图像或刷新页面获得新提示</div>
 
-  <script src="https://cdn.jsdelivr.net/npm/p5@1.6.0/lib/p5.min.js"></script>
-  <div id="title">您的近日命理图示</div>
-  <div id="analysis"></div>
-  <div id="golden"></div>
+<div id="title">您的近日命理图示</div>
+<div id="analysis"></div>
+<div id="golden"></div>
+<button id="saveBtn">保存今日命理运势</button>
 
-  <script>
-    let orbs = [], dusts = [];
-    const palette = ['#ED00B7','#0E03DE','#D0EFFA','#FFCE00','#9E0010'];
+<script src="https://cdn.jsdelivr.net/npm/p5@1.6.0/lib/p5.min.js"></script>
+<script>
+let orbs=[], dusts=[], angleOffset=0;
+const palette = ['#ED00B7','#0E03DE','#D0EFFA','#FFCE00','#9E0010'];
 
-    const sentences = [
-      {type:'red', texts:["你会大获全胜，否则失败会提前。","红色激发热情，你可能太过兴奋，也可能什么都没发生。"]},
-      {type:'blue', texts:["蓝色提醒你保持冷静，否则你会迷路。","你在冷静中将获得启示，或者完全没有启示。"]},
-      {type:'light', texts:["浅色带来轻松，你会顺利，或者一切原本就顺利。","温和的光照提醒你，事情并没有想象中复杂。"]},
-      {type:'yellow',texts:["黄色闪耀，意味着惊喜临近，或者只是光影在作怪。","注意周围的光亮，也许它预示好运，或者只是装饰。"]},
-      {type:'dark', texts:["暗色暗示挑战，你会成功，或者失败也无所谓。","阴影提醒你小心，或者完全不用理会。"]}
-    ];
+// 积极荒诞小金句
+const goldenSentences = [
+  "今日行动必有收获，或者至少你会学到失败的智慧。",
+  "保持热情与专注，所有努力终将回报，或者回报会偷偷溜走。",
+  "你会大获全胜，否则你会惊讶地发现自己也没输。",
+  "好运正在靠近，除非它迷路了。",
+  "每一次努力都很重要，即便它只是让你笑了。",
+  "今日精神饱满，或许只是精神错乱也无妨。",
+  "你的专注会让你成功，或者让你意识到成功并不重要。",
+  "每一个决策都至关重要，或者根本无关紧要。"
+];
 
-    // 获取当前提示文本
-    function getSentenceByColor(col){
-      let t = 'light';
-      if(col[0]>200 && col[1]<100 && col[2]>150) t='red';
-      else if(col[0]<50 && col[1]<50 && col[2]>150) t='blue';
-      else if(col[0]>200 && col[1]>200 && col[2]>200) t='light';
-      else if(col[0]>200 && col[1]>180 && col[2]<80) t='yellow';
-      else t='dark';
-      let arr = sentences.find(s=>s.type===t).texts;
-      return arr[Math.floor(Math.random() * arr.length)];
-    }
+// 页面元素
+let analysisDiv, goldenDiv;
 
-    // 积极荒诞小金句
-    const goldenSentences = [
-      "今日行动必有收获，或者至少你会学到失败的智慧。",
-      "保持热情与专注，所有努力终将回报，或者回报会偷偷溜走。",
-      "你会大获全胜，否则你会惊讶地发现自己也没输。",
-      "好运正在靠近，除非它迷路了。",
-      "每一次努力都很重要，即便它只是让你笑了。",
-      "今日精神饱满，或许只是精神错乱也无妨。",
-      "你的专注会让你成功，或者让你意识到成功并不重要。",
-      "每一个决策都至关重要，或者根本无关紧要。"
-    ];
+function setup(){
+  createCanvas(windowWidth, windowHeight);
+  analysisDiv = document.getElementById('analysis');
+  goldenDiv = document.getElementById('golden');
 
-    // 保存按钮
-    document.getElementById('saveBtn').addEventListener('click',()=>{
-      saveCanvas('命理图示','png');
-    });
+  // 初始化 orbs + dusts
+  for(let i=0;i<12;i++) orbs.push(new Orb(i*TWO_PI/12));
+  for(let i=0;i<120;i++) dusts.push(new Dust());
 
-    // 页面元素
-    let analysisDiv, goldenDiv;
+  generateAnalysisText();
+}
 
-    function setup(){
-      createCanvas(windowWidth, windowHeight);
-      analysisDiv = document.getElementById('analysis');
-      goldenDiv = document.getElementById('golden');
+function draw(){
+  background(255);
+  push();
+  translate(width/2,height/2);
 
-      // 初始化 orbs + dusts
-      for(let i=0;i<12;i++) orbs.push(new Orb(i * TWO_PI / 12.0));
-      for(let i=0;i<120;i++) dusts.push(new Dust());
+  let speedFactor=1.2;
+  let radiusBase = min(width,height)*0.33;
+  angleOffset += 0.01*speedFactor;
 
-      // 随机选择一个主色 orb
-      let firstOrbColor = color(palette[Math.floor(Math.random() * palette.length)]);
-      window.sentence = getSentenceByColor([red(firstOrbColor),green(firstOrbColor),blue(firstOrbColor)]);
-      let readingDiv = document.getElementById('reading');
-      readingDiv.innerText = window.sentence;
+  // 背景呼吸同心圆
+  noFill();
+  stroke(0,40);
+  for(let r=150;r<=420;r+=60){
+    let pulse = 16*sin(frameCount*0.02+r*0.03);
+    ellipse(0,0,r+pulse,r+pulse);
+  }
 
-      textFont('SansSerif');
-      generateAnalysisText();
-    }
+  // 八向能量线
+  stroke(0,50);
+  let linesRot = frameCount*0.0015;
+  for(let i=0;i<8;i++){
+    let a=i*PI/4+linesRot;
+    let inner=90+10*sin(frameCount*0.03+i);
+    let outer=radiusBase+70+12*cos(frameCount*0.027+i);
+    line(cos(a)*inner,sin(a)*inner,cos(a)*outer,sin(a)*outer);
+  }
 
-    function draw(){
-      background(255);
+  // 尘埃
+  noStroke();
+  for(let d of dusts){ d.update(); d.display(); }
 
-      push();
-      translate(width/2, height/2);
+  // orbs
+  for(let i=0;i<orbs.length;i++){
+    let o = orbs[i];
+    let radius = radiusBase*(0.86 + 0.14*sin(frameCount*0.01+i*0.7));
+    if(i===0){ o.scale = 1.2; radius*=1.2; } else o.scale=1.0;
+    o.update(angleOffset,radius);
+    o.display();
+  }
 
-      const speedFactor = 1.2;
-      const radiusBase = min(width, height) * 0.33;
-      angleOffset += 0.01 * speedFactor;
+  pop();
+}
 
-      noFill();
-      stroke(0, 40);
-      for (let r = 150; r <= 420; r += 60){
-        let pulse = 16 * sin(frameCount*0.02 + r*0.03);
-        ellipse(0,0,r + pulse,r + pulse);
-      }
+function windowResized(){ resizeCanvas(windowWidth,windowHeight); }
 
-      stroke(0,50);
-      let linesRot = frameCount * 0.0015;
-      for(let i=0; i<8; i++){
-        let a = i * PI / 4 + linesRot;
-        let inner = 90 + 10 * sin(frameCount * 0.03 + i);
-        let outer = radiusBase + 70 + 12 * cos(frameCount * 0.027 + i);
-        line(cos(a) * inner, sin(a) * inner, cos(a) * outer, sin(a) * outer);
-      }
+// --- Orb类 ---
+class Orb{
+  constructor(angle){
+    this.angle = angle;
+    this.x=0; this.y=0; this.scale=1;
+    this.col=color(palette[int(random(palette.length))]);
+  }
+  update(offset,radius){
+    this.x = cos(this.angle+offset)*radius;
+    this.y = sin(this.angle+offset)*radius;
+  }
+  display(){
+    let baseSize = 60*this.scale;
+    noStroke();
+    fill(this.col,205);
+    ellipse(this.x,this.y,baseSize,baseSize);
+    noFill();
+    stroke(this.col,70);
+    let halo = baseSize + 22*sin(frameCount*0.05+this.angle*3.0);
+    ellipse(this.x,this.y,halo,halo);
+  }
+}
 
-      for(let d of dusts){
-        d.update(); 
-        d.display();
-      }
+// --- Dust类 ---
+class Dust{
+  constructor(){
+    this.radius=random(100,480);
+    this.angle=random(TWO_PI);
+    this.speed=random(0.001,0.004);
+    this.sz=random(1.2,2.6);
+    this.alpha=random(20,60);
+  }
+  update(){ this.angle+=this.speed; this.radius+=0.25*sin(frameCount*0.01+this.angle*5.0);}
+  display(){
+    let px=cos(this.angle)*this.radius;
+    let py=sin(this.angle)*this.radius;
+    noStroke();
+    fill(0,this.alpha);
+    ellipse(px,py,this.sz,this.sz);
+  }
+}
 
-      for(let i=0; i<orbs.length; i++){
-        let o = orbs[i];
-        let radius = radiusBase * (0.86 + 0.14 * sin(frameCount * 0.01 + i * 0.7));
-        if(i === 0){ 
-          o.scale = 1.2; 
-          radius *= 1.2; 
-        } else o.scale = 1.0;
-        o.update(angleOffset, radius);
-        o.display();
-      }
+// --- 假装分析文本 ---
+function generateAnalysisText(){
+  // 颜色占比（随机化模拟）
+  let rCount=0,bCount=0,yCount=0,lCount=0,dCount=0;
+  for(let o of orbs){
+    let c = o.col;
+    let r=red(c),g=green(c),b=blue(c);
+    if(r>200 && g<100 && b>150) rCount++;
+    else if(r<50 && g<50 && b>150) bCount++;
+    else if(r>200 && g>180 && b<80) yCount++;
+    else if(r>200 && g>200 && b>200) lCount++;
+    else dCount++;
+  }
 
-      pop();
-    }
+  let analysisText=`颜色占比：红${rCount}、蓝${bCount}、黄${yCount}、浅${lCount}、暗${dCount}。`;
+  analysisText+=`\n八卦呈现色调偏${rCount>=bCount?'暖':'冷'}，象征近期能量${rCount>=bCount?'集中':'均衡'}。`;
+  analysisText+=`\n元素偏多的区域提醒您：多关注细节与互动。`;
 
-    function windowResized(){ resizeCanvas(windowWidth,windowHeight); }
+  analysisDiv.innerText=analysisText;
 
-    // --- Orb类 ---
-    class Orb{
-      constructor(angle){
-        this.angle = angle;
-        this.x=0; 
-        this.y=0; 
-        this.scale=1;
-        this.col = color(palette[Math.floor(Math.random() * palette.length)]);
-      }
-      update(offset,radius){
-        this.x = cos(this.angle+offset)*radius;
-        this.y = sin(this.angle+offset)*radius;
-      }
-      display(){
-        let baseSize = 60*this.scale;
-        noStroke();
-        fill(this.col,205);
-        ellipse(this.x,this.y,baseSize,baseSize);
-        noFill();
-        stroke(this.col,70);
-        let halo = baseSize + 22*sin(frameCount*0.05 + this.angle*3.0);
-        ellipse(this.x,this.y,halo,halo);
-      }
-    }
+  // 随机抽取小金句
+  let gold = goldenSentences[int(random(goldenSentences.length))];
+  goldenDiv.innerText = gold;
+}
 
-    // --- Dust类 ---
-    class Dust{
-      constructor(){
-        this.radius = random(100, 480);
-        this.angle = random(TWO_PI);
-        this.speed = random(0.001, 0.004);
-        this.sz = random(1.2, 2.6);
-        this.alpha = random(20, 60);
-      }
-      update(){ 
-        this.angle += this.speed; 
-        this.radius += 0.25 * sin(frameCount * 0.01 + this.angle * 5.0); 
-      }
-      display(){
-        let px = cos(this.angle) * this.radius;
-        let py = sin(this.angle) * this.radius;
-        noStroke();
-        fill(0,this.alpha);
-        ellipse(px,py,this.sz,this.sz);
-      }
-    }
-
-    // --- 假装分析文本 ---
-    function generateAnalysisText(){
-      let rCount = 0, bCount = 0, yCount = 0, lCount = 0, dCount = 0;
-      for(let o of orbs){
-        let c = o.col;
-        let r = red(c), g = green(c), b = blue(c);
-        if(r > 200 && g < 100 && b > 150) rCount++;
-        else if(r < 50 && g < 50 && b > 150) bCount++;
-        else if(r > 200 && g > 180 && b < 80) yCount++;
-        else if(r > 200 && g > 200 && b > 200) lCount++;
-        else dCount++;
-      }
-
-      let analysisText = `颜色占比：红${rCount}、蓝${bCount}、黄${yCount}、浅${lCount}、暗${dCount}。`;
-      analysisText += `\n八卦呈现色调偏${rCount >= bCount ? '暖' : '冷'}，象征近期能量${rCount >= bCount ? '集中' : '均衡'}。`;
-      analysisText += `\n元素偏多的区域提醒您：多关注细节与互动。`;
-
-      analysisDiv.innerText = analysisText;
-
-      let gold = goldenSentences[Math.floor(Math.random() * goldenSentences.length)];
-      goldenDiv.innerText = gold;
-    }
-  </script>
+// --- 保存按钮 ---
+document.getElementById('saveBtn').addEventListener('click',()=>{
+  // 暂时隐藏按钮避免截图中出现
+  let btn = document.getElementById('saveBtn');
+  btn.style.display='none';
+  saveCanvas('今日命理运势','png');
+  btn.style.display='block';
+});
+</script>
 </body>
 </html>
